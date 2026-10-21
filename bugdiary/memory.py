@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS cards (
 CREATE TABLE IF NOT EXISTS vectors (
     card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
     model TEXT NOT NULL,
+    digest TEXT NOT NULL,
     vector BLOB NOT NULL,
     PRIMARY KEY (card_id, model)
 );
@@ -37,6 +38,10 @@ class Diary:
         self.db.execute("PRAGMA foreign_keys = ON")
         self.db.execute("PRAGMA journal_mode = WAL")
         self.db.executescript(SCHEMA)
+        columns = {row["name"] for row in self.db.execute("PRAGMA table_info(vectors)")}
+        if "digest" not in columns:
+            self.db.execute("DROP TABLE vectors")
+            self.db.executescript(SCHEMA)
 
     def close(self) -> None:
         self.db.close()
@@ -52,6 +57,7 @@ class Diary:
             json.dumps(card.body(), ensure_ascii=False),
         )
         with self.db:
+            self.db.execute("BEGIN IMMEDIATE")
             existing = self.db.execute(
                 "SELECT id FROM cards WHERE project = ? AND revision = ?", (card.project, card.revision)
             ).fetchone()
@@ -91,20 +97,26 @@ class Diary:
         with self.db:
             return self.db.execute("DELETE FROM cards WHERE id = ?", (card_id,)).rowcount > 0
 
-    def put_vector(self, card_id: int, model: str, vector: list[float]) -> None:
+    def put_vector(self, card_id: int, model: str, vector: list[float], digest: str) -> bool:
         blob = array("f", vector).tobytes()
         with self.db:
+            self.db.execute("BEGIN IMMEDIATE")
+            row = self.db.execute("SELECT * FROM cards WHERE id = ?", (card_id,)).fetchone()
+            if row is None or self.to_card(row).digest() != digest:
+                return False
             self.db.execute(
-                "INSERT OR REPLACE INTO vectors (card_id, model, vector) VALUES (?, ?, ?)", (card_id, model, blob)
+                "INSERT OR REPLACE INTO vectors (card_id, model, digest, vector) VALUES (?, ?, ?, ?)",
+                (card_id, model, digest, blob),
             )
+        return True
 
-    def vectors(self, model: str) -> dict[int, list[float]]:
-        rows = self.db.execute("SELECT card_id, vector FROM vectors WHERE model = ?", (model,))
+    def vectors(self, model: str) -> dict[int, tuple[str, list[float]]]:
+        rows = self.db.execute("SELECT card_id, digest, vector FROM vectors WHERE model = ?", (model,))
         out = {}
         for row in rows:
             values = array("f")
             values.frombytes(row["vector"])
-            out[row["card_id"]] = values.tolist()
+            out[row["card_id"]] = (row["digest"], values.tolist())
         return out
 
     @staticmethod

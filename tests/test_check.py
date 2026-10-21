@@ -85,6 +85,17 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(check.retrieve(llm, self.diary, ["   "]), [])
         self.assertEqual(check.retrieve(llm, self.diary, ["token refresh"], floor=1.01), [])
 
+    def test_stale_vectors_are_computed_again(self):
+        llm = FakeLLM()
+        card = self.diary.cards()[0]
+        self.diary.db.execute("UPDATE vectors SET digest = 'stale'")
+        self.diary.db.commit()
+        vectors = check.ensure_vectors(llm, self.diary, [card])
+        digest, stored = self.diary.vectors(llm.embed_model)[card.id]
+        self.assertEqual(digest, card.digest())
+        for kept, computed in zip(stored, vectors[card.id]):
+            self.assertAlmostEqual(kept, computed, places=6)
+
     def test_cosine(self):
         self.assertAlmostEqual(check.cosine([1.0, 0.0], [1.0, 0.0]), 1.0)
         self.assertAlmostEqual(check.cosine([1.0, 0.0], [0.0, 1.0]), 0.0)

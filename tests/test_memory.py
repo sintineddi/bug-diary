@@ -1,3 +1,4 @@
+import sqlite3
 import unittest
 from pathlib import Path
 
@@ -44,16 +45,38 @@ class DiaryTest(unittest.TestCase):
         self.assertEqual(self.diary.projects(), [("api", 1), ("worker", 1)])
 
     def test_learning_the_same_fix_again_updates_it_and_drops_its_vector(self):
-        card_id = self.diary.save(card())
-        self.diary.put_vector(card_id, "embed", [0.5, 0.25])
-        self.assertEqual(self.diary.vectors("embed"), {card_id: [0.5, 0.25]})
+        first = card()
+        card_id = self.diary.save(first)
+        self.assertTrue(self.diary.put_vector(card_id, "embed", [0.5, 0.25], first.digest()))
+        self.assertEqual(self.diary.vectors("embed"), {card_id: (first.digest(), [0.5, 0.25])})
         self.assertEqual(self.diary.save(card(pattern="new pattern")), card_id)
         self.assertEqual(self.diary.get(card_id).pattern, "new pattern")
         self.assertEqual(self.diary.vectors("embed"), {})
 
+    def test_a_vector_of_an_older_version_is_refused(self):
+        first = card()
+        card_id = self.diary.save(first)
+        self.diary.save(card(pattern="relearned meanwhile"))
+        self.assertFalse(self.diary.put_vector(card_id, "embed", [0.5], first.digest()))
+        self.assertEqual(self.diary.vectors("embed"), {})
+        self.assertFalse(self.diary.put_vector(99, "embed", [0.5], first.digest()))
+
+    def test_an_old_vector_table_is_rebuilt(self):
+        path = Path(self.tmp.name) / "old" / "diary.db"
+        path.parent.mkdir()
+        old = sqlite3.connect(str(path))
+        old.execute("CREATE TABLE vectors (card_id INTEGER, model TEXT, vector BLOB, PRIMARY KEY (card_id, model))")
+        old.execute("INSERT INTO vectors VALUES (1, 'embed', x'00')")
+        old.commit()
+        old.close()
+        diary = Diary(path)
+        self.assertEqual(diary.vectors("embed"), {})
+        diary.close()
+
     def test_forget_removes_the_card_and_its_vector(self):
-        card_id = self.diary.save(card())
-        self.diary.put_vector(card_id, "embed", [1.0])
+        stored = card()
+        card_id = self.diary.save(stored)
+        self.diary.put_vector(card_id, "embed", [1.0], stored.digest())
         self.assertTrue(self.diary.forget(card_id))
         self.assertFalse(self.diary.forget(card_id))
         self.assertIsNone(self.diary.get(card_id))

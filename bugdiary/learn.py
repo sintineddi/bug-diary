@@ -234,5 +234,5 @@ def remember(diary: Diary, llm: Ollama, card: Card) -> str | None:
         vector = llm.embed([card.document()])[0]
     except OllamaError as error:
         return str(error)
-    diary.put_vector(card.id, llm.embed_model, vector)
+    diary.put_vector(card.id, llm.embed_model, vector, card.digest())
     return None

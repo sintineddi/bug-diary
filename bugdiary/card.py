@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 from dataclasses import asdict, dataclass, field
 
@@ -55,6 +56,9 @@ class Card:
 
     def document(self) -> str:
         return f"title: {self.pattern} | text: {self.root_cause.text} {self.lesson} {self.guard}"
+
+    def digest(self) -> str:
+        return hashlib.sha256(self.document().encode()).hexdigest()[:16]
 
     @classmethod
     def from_row(cls, row: dict, body: dict) -> Card:

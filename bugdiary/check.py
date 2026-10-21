@@ -69,12 +69,17 @@ def cosine(left: list[float], right: list[float]) -> float:
 
 
 def ensure_vectors(llm: Ollama, diary: Diary, cards: list[Card]) -> dict[int, list[float]]:
-    vectors = diary.vectors(llm.embed_model)
+    stored = diary.vectors(llm.embed_model)
+    vectors = {}
+    for card in cards:
+        digest, vector = stored.get(card.id, ("", []))
+        if digest == card.digest():
+            vectors[card.id] = vector
     missing = [card for card in cards if card.id not in vectors]
     for start in range(0, len(missing), EMBED_BATCH):
         batch = missing[start : start + EMBED_BATCH]
         for card, vector in zip(batch, llm.embed([card.document() for card in batch])):
-            diary.put_vector(card.id, llm.embed_model, vector)
+            diary.put_vector(card.id, llm.embed_model, vector, card.digest())
             vectors[card.id] = vector
     return vectors
 
