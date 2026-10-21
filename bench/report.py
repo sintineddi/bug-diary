@@ -9,6 +9,11 @@ from pathlib import Path
 from .run import RESULTS, fix_date, load_cases, project_of
 from .snapshots import near
 
+VERSIONS = {
+    "": "each lesson alone",
+    "-by-kind": "by kind of bug (--by-kind)",
+    "-v2": "experiment: by kind, told guards can be incomplete",
+}
 FAMILY_NAMES = {
     "F1": "credentials kept across a redirect",
     "F2": "archive extraction escapes its folder",
@@ -17,10 +22,22 @@ FAMILY_NAMES = {
 }
 
 
-def read(path: Path) -> list[dict]:
+def read_all(path: Path) -> list[dict]:
     if not path.exists():
         return []
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
+def latest(path: Path) -> dict:
+    return {row.get("item", row.get("case")): row for row in read_all(path)}
+
+
+def read(path: Path) -> list[dict]:
+    return [row for row in latest(path).values() if "error" not in row]
+
+
+def failures(path: Path) -> int:
+    return sum(1 for row in latest(path).values() if "error" in row)
 
 
 def family_of_cards(learn_log: list[dict]) -> dict[str, str | None]:
@@ -32,7 +49,7 @@ def located(hits: list[dict], touched: dict[str, list[int]]) -> bool:
 
 
 def later_in_repo(cases: dict) -> dict[str, list[str]]:
-    dated = sorted((fix_date(case), case) for case in cases["fixes"] if case.get("family"))
+    dated = sorted(((fix_date(case), case) for case in cases["fixes"] if case.get("family")), key=lambda item: item[0])
     later = {}
     for date, case in dated:
         later[case["id"]] = [
@@ -120,26 +137,31 @@ def fixed_alerts(judged_rows: list[tuple[dict, dict]], later: dict[str, list[str
     return lines
 
 
-def detection_table(name: str, judged: list[dict]) -> list[str]:
+def median_seconds(rows: list[dict]) -> str:
+    return f"{statistics.median(row['seconds'] for row in rows):.0f} s" if rows else "–"
+
+
+def detection_table(name: str, judged: list[dict], failed: int = 0) -> list[str]:
     vulnerable = [row for row in judged if row["kind"] == "vulnerable"]
     fixed = [row for row in judged if row["kind"] == "fixed"]
     healthy = [row for row in judged if row["kind"] == "healthy"]
     return [
-        f"| {name} | {share(vulnerable, 'retrieved_relevant')} | {share(vulnerable, 'right_precedent')} "
+        f"| {name} | {len(judged)} ({failed} failed) "
+        f"| {share(vulnerable, 'retrieved_relevant')} | {share(vulnerable, 'right_precedent')} "
         f"| {share(vulnerable, 'on_the_spot')} | {share(vulnerable, 'same_repo')} | {share(vulnerable, 'cross_repo')} "
         f"| {share(fixed, 'alerted')} | {share(healthy, 'alerted')} "
-        f"| {statistics.median(row['seconds'] for row in judged):.0f} s |"
+        f"| {median_seconds(judged)} |"
     ]
 
 
-def blind_table(judged: list[dict]) -> list[str]:
+def blind_table(judged: list[dict], failed: int = 0) -> list[str]:
     vulnerable = [row for row in judged if row["kind"] == "vulnerable"]
     fixed = [row for row in judged if row["kind"] == "fixed"]
     healthy = [row for row in judged if row["kind"] == "healthy"]
     return [
-        f"| no diary | – | – | {share(vulnerable, 'on_the_spot')} | – | – "
+        f"| no diary | {len(judged)} ({failed} failed) | – | – | {share(vulnerable, 'on_the_spot')} | – | – "
         f"| {share(fixed, 'alerted')} | {share(healthy, 'alerted')} "
-        f"| {statistics.median(row['seconds'] for row in judged):.0f} s |"
+        f"| {median_seconds(judged)} |"
     ]
 
 
@@ -176,28 +198,33 @@ def main() -> None:
     out += [
         "## Detection",
         "",
-        "| diary built from | relevant lesson retrieved | alert with a lesson of the same family | alert on the fixed lines"
-        " | same repo | other repo | alerts on fixed code | alerts on healthy changes | median time |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "| diary built from | items checked | relevant lesson retrieved | alert with a lesson of the same family"
+        " | alert on the fixed lines | same repo | other repo | alerts on fixed code | alerts on healthy changes"
+        " | median time |",
+        "|---|---|---|---|---|---|---|---|---|---|",
     ]
     blind = [judge_blind(row) for row in read(model_dir / "blind" / "blind.jsonl")]
-    main_rows: list[tuple[dict, dict]] = []
-    for variant_dir in sorted(path for path in model_dir.iterdir() if (path / f"detect-top{args.top}.jsonl").exists()):
+    compared: dict[str, list[tuple[dict, dict]]] = {}
+    for variant_dir in sorted(path for path in model_dir.iterdir() if path.is_dir()):
         families = family_of_cards(read(variant_dir / "learn.jsonl"))
-        rows = read(variant_dir / f"detect-top{args.top}.jsonl")
-        judged = [judge_detection(row, families) for row in rows]
-        if judged:
-            out += detection_table(variant_dir.name, judged)
-        if variant_dir.name == "full":
-            main_rows = list(zip(rows, judged))
-    if blind:
-        out += blind_table(blind)
+        logs = [variant_dir / f"detect-top{args.top}.jsonl", *sorted(variant_dir.glob(f"detect-top{args.top}-*.jsonl"))]
+        for log in (path for path in logs if path.exists()):
+            version = VERSIONS.get(log.stem.removeprefix(f"detect-top{args.top}"), log.stem)
+            rows = read(log)
+            judged = [judge_detection(row, families) for row in rows]
+            if judged or failures(log):
+                out += detection_table(f"{variant_dir.name}, {version}", judged, failures(log))
+            if variant_dir.name == "full":
+                compared[version] = list(zip(rows, judged))
+    blind_failures = failures(model_dir / "blind" / "blind.jsonl")
+    if blind or blind_failures:
+        out += blind_table(blind, blind_failures)
     out.append("")
-    if main_rows:
-        out += ["## By family (diary built from full context)", ""]
-        out += family_table([judged for _, judged in main_rows], blind) + [""]
-        out += ["## Alerts on fixed code", ""]
-        out += fixed_alerts(main_rows, later_in_repo(cases)) + [""]
+    for version, pairs in compared.items():
+        out += [f"## By family (full context, {version})", ""]
+        out += family_table([judged for _, judged in pairs], blind) + [""]
+        out += [f"## Alerts on fixed code ({version})", ""]
+        out += fixed_alerts(pairs, later_in_repo(cases)) + [""]
     path = model_dir / "RESULTS.md"
     path.write_text("\n".join(out))
     print("\n".join(out))

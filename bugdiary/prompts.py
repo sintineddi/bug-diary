@@ -33,6 +33,18 @@ check: one question the author of the change should answer.
 test: one test, adapted to this change, that would show the bug.
 Plain English, no markdown."""
 
+FAMILY_SYSTEM = """You check a code change against one bug from the team's bug diary. The diary card explains a past bug, its cause, and the guard its fix added. You may also get other fixes of the same kind of bug from the diary: they show other forms of the risky operation and of its guard.
+
+Decide whether the change repeats that bug:
+- "repeats": the changed code itself does the risky operation that caused the past bug, and neither the guard nor an equivalent protection is visible in the change. Copy the lines of the change that carry the risk into evidence, verbatim, one line per item: added lines (starting with +), or a removed protection (starting with -). List in precedents the diary ids (like BUG-0012) of the past fixes the change repeats.
+- "protected": the change does the same kind of operation, but the guard or an equivalent protection is visible. Copy the protecting lines into protection, verbatim.
+- "unrelated": the change does not do the risky operation. Similar topics, words or file names are not enough for "repeats".
+- "unclear": the risky operation is in the change, but the protection could live outside the code shown.
+reason: one to three sentences that tie the past cause to the exact code of the change, or say why it does not apply.
+check: one question the author of the change should answer.
+test: one test, adapted to this change, that would show the bug.
+Plain English, no markdown."""
+
 SOURCE_NAMES = ["message", "notes", "changelog", "tests", "code", "none"]
 
 CLAIM = {
@@ -102,4 +114,18 @@ COMPARE_SCHEMA = {
         "test": {"type": "string"},
     },
     "required": ["reason", "verdict", "evidence", "protection", "check", "test"],
+}
+
+FAMILY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "reason": {"type": "string"},
+        "verdict": {"type": "string", "enum": ["repeats", "protected", "unrelated", "unclear"]},
+        "precedents": {"type": "array", "items": {"type": "string"}},
+        "evidence": {"type": "array", "items": {"type": "string"}},
+        "protection": {"type": "array", "items": {"type": "string"}},
+        "check": {"type": "string"},
+        "test": {"type": "string"},
+    },
+    "required": ["reason", "verdict", "precedents", "evidence", "protection", "check", "test"],
 }

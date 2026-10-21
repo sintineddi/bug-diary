@@ -39,6 +39,7 @@ BINARY_SUFFIXES = (
     ".jar",
     ".snap",
 )
+DATA_SUFFIXES = (".jsonl", ".ndjson", ".csv", ".tsv", ".parquet", ".sqlite", ".db")
 NOTES_PATH = re.compile(r"(^|/)(changelog|changes|history|news|release[-_ ]?notes)(\.[a-z]+)?$", re.IGNORECASE)
 DOCS_PATH = re.compile(r"(^|/)(docs?/|readme)|\.(md|rst|txt|adoc)$", re.IGNORECASE)
 TEST_PATH = re.compile(
@@ -104,6 +105,8 @@ def file_role(path: str, binary: bool = False) -> str:
         return "notes"
     if TEST_PATH.search(path):
         return "test"
+    if lowered.endswith(DATA_SUFFIXES):
+        return "data"
     if DOCS_PATH.search(path):
         return "docs"
     return "code"

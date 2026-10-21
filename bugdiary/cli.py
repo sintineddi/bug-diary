@@ -52,12 +52,17 @@ def build_parser() -> argparse.ArgumentParser:
     scope.add_argument("--commit", help="check a commit or a range A..B")
     scope.add_argument("--diff", help="check a unified diff file, or - for stdin")
     check_parser.add_argument("--top", type=int, default=DEFAULT_TOP, help="lessons to compare (default: 3)")
+    check_parser.add_argument(
+        "--by-kind",
+        action="store_true",
+        help="compare once per kind of bug, showing the model up to six past fixes of that kind: faster, more cautious",
+    )
     check_parser.add_argument("--all", action="store_true", help="also show lessons that do not apply")
     check_parser.add_argument("--json", action="store_true", help="print the report as JSON")
     check_parser.add_argument(
         "--strict",
         action="store_true",
-        help="exit with 1 when a known bug comes back or the change is too large to read",
+        help="exit with 1 when a known bug comes back or the check could not finish",
     )
     check_parser.set_defaults(handler=run_check)
 
@@ -182,12 +187,12 @@ def change_text(args: argparse.Namespace, repo: Path | None) -> str:
 def run_check(args: argparse.Namespace) -> int:
     settings = config.load(args.repo, args.project, args.memory)
     files = diffs.parse(change_text(args, settings.repo))
-    report = check(make_llm(args), open_diary(settings), files, settings.project, args.top)
+    report = check(make_llm(args), open_diary(settings), files, settings.project, args.top, by_kind=args.by_kind)
     if args.json:
         print(json.dumps(report_json(report), indent=2, ensure_ascii=False))
     else:
         print("\n".join(report_lines(report, Style.for_stream(sys.stdout), args.all)))
-    return 1 if args.strict and (report.alerts or report.partial) else 0
+    return 1 if args.strict and (report.alerts or report.partial or report.incomplete) else 0
 
 
 def run_search(args: argparse.Namespace) -> int:

@@ -123,12 +123,12 @@ class LearnFromGitTest(unittest.TestCase):
         self.assertEqual(card.evidence["sources"], ["tests", "code"])
         self.assertEqual(card.symptom.basis, "unknown")
 
-    def test_a_partly_matching_message_is_ignored_too(self):
+    def test_a_partly_matching_message_is_kept(self):
         partly = {**TOKEN_CARD, "message_matches": "partly", "message_mismatch": "also mentions logging"}
-        llm = FakeLLM(cards=[partly, {**TOKEN_CARD, "message_matches": "no message"}])
+        llm = FakeLLM(card=partly)
         card = learn.learn(llm, learn.from_git(self.api, "HEAD", "api")).card
-        self.assertEqual(len(llm.prompts), 2)
-        self.assertEqual(card.evidence["message_ignored"], "also mentions logging")
+        self.assertEqual(len(llm.prompts), 1)
+        self.assertEqual(card.evidence["message_ignored"], "")
 
     def test_a_matching_message_is_kept(self):
         llm = FakeLLM()

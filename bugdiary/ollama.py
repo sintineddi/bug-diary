@@ -12,9 +12,15 @@ DEFAULT_HOST = "http://localhost:11434"
 DEFAULT_MODEL = "gemma4:26b"
 DEFAULT_EMBED_MODEL = "embeddinggemma"
 RAW_BYTES = re.compile(r"(?:<0x[0-9A-Fa-f]{2}>)+")
+MAX_ANSWER_TOKENS = 2048
+SAMPLINGS = ({"temperature": 0, "seed": 7}, {"temperature": 0.6, "seed": 11})
 
 
 class OllamaError(RuntimeError):
+    pass
+
+
+class AnswerError(OllamaError):
     pass
 
 
@@ -70,10 +76,10 @@ class Ollama:
             "format": schema,
             "stream": False,
             "think": False,
-            "options": {"temperature": 0, "seed": 7, "num_ctx": self.num_ctx},
         }
         problem = ""
-        for _ in range(2):
+        for sampling in SAMPLINGS:
+            body["options"] = {**sampling, "num_ctx": self.num_ctx, "num_predict": MAX_ANSWER_TOKENS}
             started = time.monotonic()
             reply = self.post("/api/chat", body)
             self.calls.append(
@@ -85,11 +91,14 @@ class Ollama:
                     reply.get("eval_count", 0),
                 )
             )
+            if reply.get("done_reason") == "length":
+                problem = f"the answer ran past {MAX_ANSWER_TOKENS} tokens"
+                continue
             try:
                 return parse_json(repair_bytes(reply.get("message", {}).get("content", "")))
             except ValueError as error:
                 problem = str(error)
-        raise OllamaError(f"{body['model']} did not return valid JSON twice: {problem}")
+        raise AnswerError(f"{body['model']} gave no usable answer twice: {problem}")
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         if not texts:

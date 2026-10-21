@@ -70,6 +70,9 @@ class ParseTest(unittest.TestCase):
         self.assertEqual(diffs.file_role("src/app.spec.tsx"), "test")
         self.assertEqual(diffs.file_role("node_modules/x/index.js"), "noise")
         self.assertEqual(diffs.file_role("src/latest.js"), "code")
+        self.assertEqual(diffs.file_role("bench/results/run.jsonl"), "data")
+        self.assertEqual(diffs.file_role("config/access-policy.json"), "code")
+        self.assertEqual(diffs.file_role("tests/fixtures/regression.jsonl"), "test")
 
 
 class RenderTest(unittest.TestCase):

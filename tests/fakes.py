@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from bugdiary.prompts import COMPARE_SYSTEM, DESCRIBE_SYSTEM, LEARN_SYSTEM
+from bugdiary.prompts import COMPARE_SYSTEM, DESCRIBE_SYSTEM, FAMILY_SYSTEM, LEARN_SYSTEM
 
 GIT_IDENTITY = {
     "GIT_AUTHOR_NAME": "Test",
@@ -74,7 +74,7 @@ class FakeLLM:
             return self.cards.pop(0) if self.cards else self.card
         if system == DESCRIBE_SYSTEM:
             return {"summary": "Adds a token refresh to the billing client.", "behaviors": self.behaviors}
-        if system == COMPARE_SYSTEM:
+        if system in (COMPARE_SYSTEM, FAMILY_SYSTEM):
             return self.verdict
         raise AssertionError("unexpected prompt")
 

@@ -69,11 +69,46 @@ project: billing-worker
 memory: ~/team-diary
 ```
 
-Options: `--model` (any Ollama model, `gemma4:26b` by default), `--embed-model` (`embeddinggemma` by default), `--top` (lessons compared per check, 3 by default), `--strict` (exit 1 when a known bug comes back).
+Options: `--model` (any Ollama model, `gemma4:26b` by default), `--embed-model` (`embeddinggemma` by default), `--top` (lessons compared per check, 3 by default), `--by-kind` (compare once per kind of bug, showing the model up to six past fixes of that kind: faster and more cautious), `--strict` (exit 1 when a known bug comes back, or when the check could not finish).
 
 ## Demo
 
 `python demo/toy.py` builds two small repositories, teaches the diary a token refresh race fixed in the first one, then checks two changes in the second: one that repeats the bug, and one that already shares the refresh.
+
+## Benchmark
+
+`bench/` asks whether a diary of past fixes could have warned about later bugs, on real history.
+
+- `bench/families.json` (summary in [bench/FAMILIES.md](bench/FAMILIES.md)) lists 153 security advisories, each checked against its fix commit, in four families of bugs that keep coming back: credentials kept across a redirect (47 fixes in 22 repositories), archive extraction escaping its folder (48), prototype pollution (42), HTTP request smuggling (16).
+- The diary learns only the fixes published before 2021-01-01 (60, plus 6 ordinary bug fixes from `bench/extra.json`).
+- For each of the 92 later fixes, Bug Diary checks the vulnerable code and the fixed code (each shown as new code, 30 lines of context around the fix), plus 21 ordinary commits from the same repositories.
+- The same model without the diary, asked to review each change, is the baseline (`bench/blind.py`).
+
+```sh
+.venv/bin/python -m bench.run fetch
+.venv/bin/python -m bench.run learn --variant full
+.venv/bin/python -m bench.run detect --variant full
+.venv/bin/python -m bench.run blind
+.venv/bin/python -m bench.report
+```
+
+`fetch` downloads the commits, files and advisories with [`gh`](https://cli.github.com) into `bench/cache/`. Results go to `bench/results/<model>/`, and the report to `bench/results/<model>/RESULTS.md`. `--variant code`, `code+tests` or `code+tests+message` learn the diary from less context.
+
+### Results with `gemma4:26b`
+
+Full tables in [bench/results/gemma4-26b/RESULTS.md](bench/results/gemma4-26b/RESULTS.md). For each later bug, a useful warning fires on the vulnerable version and stays quiet on the fixed one:
+
+| | warns on the vulnerable version only | on both | on neither | on the fixed version only | ordinary commits with a warning | median time |
+|---|---|---|---|---|---|---|
+| Bug Diary | 24 | 9 | 54 | 5 | 1 of 21 | 38 s |
+| `--by-kind` | 18 | 3 | 68 | 3 | 1 of 21 | 22 s |
+| the same model without the diary | 1 | 89 | 1 | 1 | 18 of 21 | 7 s |
+
+- The diary found a lesson of the right family for 90 of the 92 later bugs. Of the 33 warnings on vulnerable code that cited the right family, 30 relied only on lessons from other repositories, and 14 only on lessons learned from code in another language.
+- Without the diary, the model finds a problem in almost every change, fixed or not.
+- The hard case is a comeback: when the code already carries the guard of an earlier, incomplete fix, the model calls it protected. A prompt that told the model "a guard can be incomplete" (`detect-top3-v2.jsonl`, not kept in the code) warned on both versions of 40 bugs.
+- From the diff alone, the model left the symptom unknown for 37 of the 66 fixes and inferred it for 29; with the commit message, the pull request and the advisory, 62 symptoms were quoted from a source.
+
 
 ## Tests
 

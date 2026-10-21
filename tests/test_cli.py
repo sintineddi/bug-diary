@@ -8,6 +8,8 @@ from pathlib import Path
 from unittest import mock
 
 from bugdiary import cli, config, hooks
+from bugdiary.ollama import AnswerError
+from bugdiary.prompts import COMPARE_SYSTEM
 
 from .fakes import FakeLLM, added_file, git, make_repo, temporary_directory, token_repos, write
 
@@ -84,6 +86,20 @@ class CliTest(unittest.TestCase):
         self.assertIn("Too large to read whole: src/huge.ts", out)
         code, _, _ = run("check", "--diff", str(patch), "-C", self.tmp.name, "--memory", self.memory)
         self.assertEqual(code, 0)
+
+    def test_strict_fails_when_a_comparison_got_no_usable_answer(self):
+        run("learn", "-C", str(self.api), "--memory", self.memory)
+        answer = self.llm.chat_json
+
+        def chat_json(system, user, schema, model=None):
+            if system == COMPARE_SYSTEM:
+                raise AnswerError("gemma4:26b gave no usable answer twice")
+            return answer(system, user, schema, model)
+
+        self.llm.chat_json = chat_json
+        code, out, _ = run("check", "-C", str(self.billing), "--memory", self.memory, "--strict")
+        self.assertEqual(code, 1)
+        self.assertIn("Not compared, the model gave no usable answer: BUG-0001", out)
 
     def test_errors_are_short(self):
         code, _, err = run("learn", "nope", "-C", str(self.api), "--memory", self.memory)

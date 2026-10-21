@@ -101,6 +101,9 @@ def alert_lines(finding: Finding, project: str, style: Style) -> list[str]:
     if card.root_cause.known:
         lines += field("Cause", card.root_cause.text)
     lines += field("Lesson", card.lesson)
+    if finding.family:
+        kin = ", ".join(f"{other.label} {other.project} {other.fixed_at[:4]}" for other in finding.family[:4])
+        lines += field("Same kind", kin)
     lines.append("  In this change")
     room = width() - 6
     for hit in finding.evidence[:4]:
@@ -128,8 +131,8 @@ def report_lines(report: Report, style: Style, show_all: bool = False) -> list[s
     for finding in report.alerts:
         lines += alert_lines(finding, report.project, style)
         lines.append("")
-    if not report.alerts and report.partial:
-        lines.append(style.green("No known bug pattern in the part of this change that was read."))
+    if not report.alerts and (report.partial or report.incomplete):
+        lines.append(style.green("No known bug pattern in what could be checked."))
     elif not report.alerts:
         lines.append(style.green("No known bug pattern in this change."))
     for finding in report.findings:
@@ -146,6 +149,12 @@ def report_lines(report: Report, style: Style, show_all: bool = False) -> list[s
         lines.append(style.dim(f"{len(others)} other lessons do not apply or stay unclear (--all shows them)."))
     if report.partial:
         lines.append(style.yellow(f"⚠ Too large to read whole: {listing(report.partial)}. Check it in smaller pieces."))
+    if report.incomplete:
+        lines.append(
+            style.yellow(
+                f"⚠ Not compared, the model gave no usable answer: {', '.join(report.incomplete)}. Run it again."
+            )
+        )
     lines.append(
         style.dim(
             f"Compared the change with {len(report.findings)} of {report.diary_size} lessons in {report.seconds:.0f} s."
@@ -165,6 +174,7 @@ def report_json(report: Report) -> dict:
         "summary": report.summary,
         "behaviors": report.behaviors,
         "partial": report.partial,
+        "incomplete": report.incomplete,
         "diary_size": report.diary_size,
         "seconds": round(report.seconds, 1),
         "findings": [
@@ -180,6 +190,7 @@ def report_json(report: Report) -> dict:
                 "check": finding.check,
                 "test": finding.test,
                 "downgraded": finding.downgraded,
+                "family": [other.label for other in finding.family],
             }
             for finding in report.findings
         ],

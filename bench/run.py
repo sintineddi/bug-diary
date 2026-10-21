@@ -129,7 +129,8 @@ def append(path: Path, record: dict) -> None:
 def done(path: Path, key: str) -> set:
     if not path.exists():
         return set()
-    return {json.loads(line)[key] for line in path.read_text().splitlines() if line.strip()}
+    rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    return {row[key] for row in rows if "error" not in row}
 
 
 def run_learn(llm: Ollama, variant: str) -> None:
@@ -201,20 +202,26 @@ def items(cases: dict, evaluated: list[dict]) -> list[dict]:
     return out
 
 
-def run_detect(llm: Ollama, variant: str, top: int, kinds: tuple[str, ...]) -> None:
+def run_detect(llm: Ollama, variant: str, top: int, kinds: tuple[str, ...], by_kind: bool = False) -> None:
     cases = load_cases()
     _, evaluated = split(cases)
     folder = results_dir(llm.model, variant)
     diary = Diary(folder / "diary.db")
-    log = folder / f"detect-top{top}.jsonl"
+    log = folder / f"detect-top{top}{'-by-kind' if by_kind else ''}.jsonl"
     finished = done(log, "item")
     for item in items(cases, evaluated):
         if item["item"] in finished or item["kind"] not in kinds:
             continue
         files = diffs.parse(item["diff"])
-        report = check.check(llm, diary, files, project_of(item["repo"]), top=top)
         record = {key: item[key] for key in ("item", "case", "repo", "family", "kind", "touched")}
+        try:
+            report = check.check(llm, diary, files, project_of(item["repo"]), top=top, by_kind=by_kind)
+        except OllamaError as error:
+            append(log, {**record, "error": str(error)})
+            continue
         record["report"] = check_record(report)
+        if report.incomplete:
+            record["error"] = f"no usable answer when comparing with {', '.join(report.incomplete)}"
         append(log, record)
         alerts = [finding.card.label for finding in report.alerts]
         print(f"{variant} {item['item']}: {alerts or 'silent'} ({report.seconds:.0f} s)", flush=True)
@@ -226,6 +233,33 @@ def check_record(report: check.Report) -> dict:
         data["card_project"] = finding.card.project
         data["card_revision"] = finding.card.revision
     return record
+
+
+def run_messages(llm: Ollama) -> None:
+    cases = load_cases()
+    memory, _ = split(cases)
+    log = results_dir(llm.model, "messages") / "messages.jsonl"
+    finished = done(log, "case")
+    for case in memory:
+        if case["id"] in finished:
+            continue
+        fix = build_fix(case, cases["cutoff"])
+        texts = learn.source_texts(fix)
+        if "message" not in texts:
+            continue
+        try:
+            raw = llm.chat_json(learn.LEARN_SYSTEM, learn.prompt(fix, texts), learn.LEARN_SCHEMA)
+        except OllamaError as error:
+            append(log, {"case": case["id"], "error": str(error)})
+            continue
+        record = {
+            "case": case["id"],
+            "message": fix.message[:200],
+            "matches": raw.get("message_matches"),
+            "why": raw.get("message_mismatch"),
+        }
+        append(log, record)
+        print(f"messages {case['id']}: {record['matches']}", flush=True)
 
 
 def run_blind(llm: Ollama) -> None:
@@ -247,11 +281,12 @@ def run_blind(llm: Ollama) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="python -m bench.run")
-    parser.add_argument("step", choices=["fetch", "learn", "detect", "blind"])
+    parser.add_argument("step", choices=["fetch", "learn", "detect", "blind", "messages"])
     parser.add_argument("--variant", choices=sorted(VARIANTS), default="full")
     parser.add_argument("--model", default="gemma4:26b")
     parser.add_argument("--top", type=int, default=check.DEFAULT_TOP)
     parser.add_argument("--kinds", default="vulnerable,fixed,healthy", help="snapshots to check, comma separated")
+    parser.add_argument("--by-kind", action="store_true", help="compare once per kind of bug, as check --by-kind")
     args = parser.parse_args()
     llm = Ollama(model=args.model)
     if args.step == "fetch":
@@ -262,7 +297,9 @@ def main() -> None:
     elif args.step == "learn":
         run_learn(llm, args.variant)
     elif args.step == "detect":
-        run_detect(llm, args.variant, args.top, tuple(args.kinds.split(",")))
+        run_detect(llm, args.variant, args.top, tuple(args.kinds.split(",")), args.by_kind)
+    elif args.step == "messages":
+        run_messages(llm)
     else:
         run_blind(llm)
 
