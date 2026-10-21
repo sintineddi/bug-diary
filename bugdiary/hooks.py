@@ -24,8 +24,8 @@ def command() -> str:
 
 
 def pre_commit(strict: bool) -> str:
-    tail = "" if strict else " || true"
-    return f"#!/bin/sh\n{command()} check --staged{tail}\n"
+    check = "check --staged --strict" if strict else "check --staged || true"
+    return f"#!/bin/sh\n{command()} {check}\n"
 
 
 def post_commit() -> str:

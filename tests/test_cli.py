@@ -128,7 +128,9 @@ class HookTest(unittest.TestCase):
         self.assertIn("-m bugdiary check --staged || true", pre_commit)
         self.assertTrue(os.access(self.repo / ".git" / "hooks" / "pre-commit", os.X_OK))
         self.assertIn("learn HEAD --quiet", (self.repo / ".git" / "hooks" / "post-commit").read_text())
-        self.assertNotIn("|| true", hooks.pre_commit(strict=True))
+        strict = hooks.pre_commit(strict=True)
+        self.assertIn("-m bugdiary check --staged --strict\n", strict)
+        self.assertNotIn("|| true", strict)
         self.assertEqual(len(hooks.uninstall(self.repo)), 2)
         self.assertEqual(hooks.uninstall(self.repo), [])
 
