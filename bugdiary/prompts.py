@@ -2,6 +2,7 @@ LEARN_SYSTEM = """You keep the bug diary of a software team. You get the sources
 
 Use only what the sources show. Never invent users, incidents, data, numbers or business impact.
 
+message_matches: first compare the [MESSAGE] with what [CODE] and [TESTS] really change. "yes" if the message describes this change, "partly" if it also claims things this change does not do, "no" if it describes a different change, "no message" if there is no [MESSAGE]. In message_mismatch, say what does not match, or leave it empty.
 symptom: the wrong behaviour someone could observe before the fix.
 root_cause: the mechanism in the code that produced it.
 For both, set basis:
@@ -48,6 +49,8 @@ CLAIM = {
 LEARN_SCHEMA = {
     "type": "object",
     "properties": {
+        "message_matches": {"type": "string", "enum": ["yes", "partly", "no", "no message"]},
+        "message_mismatch": {"type": "string"},
         "is_bug_fix": {"type": "boolean"},
         "not_a_bug_fix_reason": {"type": "string"},
         "symptom": CLAIM,
@@ -64,6 +67,8 @@ LEARN_SCHEMA = {
         "identifiers": {"type": "array", "items": {"type": "string"}},
     },
     "required": [
+        "message_matches",
+        "message_mismatch",
         "is_bug_fix",
         "not_a_bug_fix_reason",
         "symptom",

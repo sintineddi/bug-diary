@@ -20,6 +20,8 @@ GIT_IDENTITY = {
 }
 
 TOKEN_CARD = {
+    "message_matches": "yes",
+    "message_mismatch": "",
     "is_bug_fix": True,
     "not_a_bug_fix_reason": "",
     "symptom": {
@@ -44,10 +46,17 @@ TOKEN_CARD = {
 
 
 class FakeLLM:
-    def __init__(self, card: dict | None = None, verdict: dict | None = None, behaviors: list[str] | None = None):
+    def __init__(
+        self,
+        card: dict | None = None,
+        verdict: dict | None = None,
+        behaviors: list[str] | None = None,
+        cards: list[dict] | None = None,
+    ):
         self.model = "fake-model"
         self.embed_model = "fake-embed"
         self.card = card or TOKEN_CARD
+        self.cards = list(cards or [])
         self.verdict = verdict or {
             "reason": "The new bearer method refreshes the token without the shared promise.",
             "verdict": "repeats",
@@ -62,7 +71,7 @@ class FakeLLM:
     def chat_json(self, system: str, user: str, schema: dict, model: str | None = None) -> dict:
         self.prompts.append((system, user))
         if system == LEARN_SYSTEM:
-            return self.card
+            return self.cards.pop(0) if self.cards else self.card
         if system == DESCRIBE_SYSTEM:
             return {"summary": "Adds a token refresh to the billing client.", "behaviors": self.behaviors}
         if system == COMPARE_SYSTEM:

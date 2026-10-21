@@ -111,6 +111,31 @@ class LearnFromGitTest(unittest.TestCase):
         self.assertFalse(learned.is_bug_fix)
         self.assertEqual(learned.reason, "only renames a variable")
 
+    def test_a_message_about_another_change_is_ignored(self):
+        mismatch = {**TOKEN_CARD, "message_matches": "no", "message_mismatch": "it talks about batches"}
+        clean = {**TOKEN_CARD, "message_matches": "no message", "symptom": {"text": "unknown", "basis": "unknown"}}
+        llm = FakeLLM(cards=[mismatch, clean])
+        card = learn.learn(llm, learn.from_git(self.api, "HEAD", "api")).card
+        self.assertEqual(len(llm.prompts), 2)
+        self.assertIn("[MESSAGE]", llm.prompts[0][1])
+        self.assertNotIn("[MESSAGE]", llm.prompts[1][1])
+        self.assertEqual(card.evidence["message_ignored"], "it talks about batches")
+        self.assertEqual(card.evidence["sources"], ["tests", "code"])
+        self.assertEqual(card.symptom.basis, "unknown")
+
+    def test_a_partly_matching_message_is_ignored_too(self):
+        partly = {**TOKEN_CARD, "message_matches": "partly", "message_mismatch": "also mentions logging"}
+        llm = FakeLLM(cards=[partly, {**TOKEN_CARD, "message_matches": "no message"}])
+        card = learn.learn(llm, learn.from_git(self.api, "HEAD", "api")).card
+        self.assertEqual(len(llm.prompts), 2)
+        self.assertEqual(card.evidence["message_ignored"], "also mentions logging")
+
+    def test_a_matching_message_is_kept(self):
+        llm = FakeLLM()
+        card = learn.learn(llm, learn.from_git(self.api, "HEAD", "api")).card
+        self.assertEqual(len(llm.prompts), 1)
+        self.assertEqual(card.evidence["message_ignored"], "")
+
     def test_a_fix_without_code_is_refused(self):
         fix = learn.Fix("api", "abc", "", "docs", [])
         with self.assertRaises(learn.LearnError):

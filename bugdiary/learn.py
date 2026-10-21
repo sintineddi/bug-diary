@@ -195,6 +195,11 @@ def learn(llm: Ollama, fix: Fix, origin: str = "unknown", include: tuple[str, ..
         raise LearnError(f"{fix.revision[:8]} changes no code to learn from")
     seconds_before = llm.seconds()
     raw = llm.chat_json(LEARN_SYSTEM, prompt(fix, texts), LEARN_SCHEMA)
+    ignored = ""
+    if "message" in texts and raw.get("message_matches") in ("no", "partly"):
+        ignored = text_of(raw, "message_mismatch") or "it describes another change"
+        texts = {name: text for name, text in texts.items() if name != "message"}
+        raw = llm.chat_json(LEARN_SYSTEM, prompt(fix, texts), LEARN_SCHEMA)
     rejected: list[str] = []
     identifiers, dropped = keep_identifiers(raw.get("identifiers"), fix)
     card = Card(
@@ -220,6 +225,7 @@ def learn(llm: Ollama, fix: Fix, origin: str = "unknown", include: tuple[str, ..
             "tests_executed": False,
             "rejected_quotes": rejected,
             "dropped_identifiers": dropped,
+            "message_ignored": ignored,
         },
         model=llm.model,
         learned_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),

@@ -81,6 +81,8 @@ def card_lines(card: Card, style: Style, seconds: float | None = None) -> list[s
         lines += field("Files", listing(card.files))
     if card.test_files:
         lines += field("Tests", listing(card.test_files))
+    if card.evidence.get("message_ignored"):
+        lines.append(style.yellow(f"  Commit message ignored: {card.evidence['message_ignored']}"))
     sources = ", ".join(card.evidence.get("sources", [])) or "nothing"
     timing = f" in {seconds:.1f} s" if seconds is not None else ""
     lines.append(style.dim(f"  Learned from {sources} with {card.model}{timing}."))
