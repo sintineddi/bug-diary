@@ -5,15 +5,22 @@ Nobody writes the post-mortem. Bug Diary writes it from the fix, and reads it ba
 ```text
 billing-worker $ bugdiary check
 ⚠ Bug pattern already met in another project: race condition in asynchronous resource rotation
-  Precedent   BUG-0001 · api · 4244a5a5 · fixed 2026-10-20 · production
+  Precedent   BUG-0001 · api · 493bb438 · fixed 2026-10-21 · production
   Past bug    users logged out when two requests refresh an expired token at once
-  Lesson      Use a shared promise to deduplicate concurrent asynchronous operations that modify
+  Cause       The second refresh sent a token the first one had already rotated, so the server
+              revoked the whole session.
+  Lesson      Use a shared promise to deduplicate concurrent asynchronous operations that mutate
               shared state.
   In this change
     src/client.ts:8  if (this.token.expired) {
     src/client.ts:9  this.token = await this.auth.refresh(this.token.refreshToken);
-  Check       Does the bearer method share an ongoing refresh promise between concurrent calls?
-  Test        Trigger two concurrent calls to invoices() and verify that auth.refresh runs once.
+  Why         The bearer method performs an asynchronous token refresh without any mechanism to
+              deduplicate concurrent calls, meaning multiple simultaneous requests will trigger
+              multiple refresh calls.
+  Check       Are you using a shared promise or a locking mechanism to ensure that multiple
+              concurrent calls to bearer() do not trigger multiple calls to auth.refresh()?
+  Test        Call billingClient.invoices() and billingClient.payments() simultaneously using
+              Promise.all and verify that auth.refresh is called exactly once.
 ```
 
 - **`bugdiary learn <commit>`**: Gemma 4 reads a bug fix (the diff, the new test, the commit message, the issue or pull request if you name one) and writes a card: symptom, root cause, pattern, fix, guard, lesson, and the condition the regression test encodes.
