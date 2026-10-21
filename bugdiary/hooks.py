@@ -31,9 +31,10 @@ def pre_commit(strict: bool) -> str:
 def post_commit() -> str:
     return (
         "#!/bin/sh\n"
-        "subject=$(git log -1 --format=%s)\n"
+        "sha=$(git rev-parse HEAD)\n"
+        'subject=$(git log -1 --format=%s "$sha")\n'
         'case "$subject" in\n'
-        f"  {FIX_SUBJECTS}) nohup nice {command()} learn HEAD --quiet >/dev/null 2>&1 & ;;\n"
+        f'  {FIX_SUBJECTS}) nohup nice {command()} learn "$sha" --quiet >/dev/null 2>&1 & ;;\n'
         "esac\n"
     )
 

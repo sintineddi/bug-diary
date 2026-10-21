@@ -2,13 +2,14 @@ import contextlib
 import io
 import json
 import os
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from bugdiary import cli, config, hooks
 
-from .fakes import FakeLLM, added_file, git, make_repo, temporary_directory, token_repos
+from .fakes import FakeLLM, added_file, git, make_repo, temporary_directory, token_repos, write
 
 
 def run(*args: str) -> tuple[int, str, str]:
@@ -137,12 +138,33 @@ class HookTest(unittest.TestCase):
         pre_commit = (self.repo / ".git" / "hooks" / "pre-commit").read_text()
         self.assertIn("-m bugdiary check --staged || true", pre_commit)
         self.assertTrue(os.access(self.repo / ".git" / "hooks" / "pre-commit", os.X_OK))
-        self.assertIn("learn HEAD --quiet", (self.repo / ".git" / "hooks" / "post-commit").read_text())
+        self.assertIn('learn "$sha" --quiet', (self.repo / ".git" / "hooks" / "post-commit").read_text())
         strict = hooks.pre_commit(strict=True)
         self.assertIn("-m bugdiary check --staged --strict\n", strict)
         self.assertNotIn("|| true", strict)
         self.assertEqual(len(hooks.uninstall(self.repo)), 2)
         self.assertEqual(hooks.uninstall(self.repo), [])
+
+    def test_post_commit_learns_the_commit_it_ran_for(self):
+        log = Path(self.tmp.name) / "calls.log"
+        fake = Path(self.tmp.name) / "fake-bugdiary"
+        fake.write_text(f"#!/bin/sh\nprintf '%s\\n' \"$*\" >> {log}\n")
+        fake.chmod(0o755)
+        with mock.patch.object(hooks, "command", return_value=str(fake)):
+            hooks.install(self.repo)
+        write(self.repo, {"a.txt": "fixed"})
+        git(self.repo, "commit", "-qam", "fix: something")
+        sha = git(self.repo, "rev-parse", "HEAD").strip()
+        write(self.repo, {"a.txt": "feature"})
+        git(self.repo, "commit", "-qam", "feature")
+        for _ in range(50):
+            if log.exists() and "learn" in log.read_text():
+                break
+            time.sleep(0.1)
+        calls = log.read_text().splitlines()
+        self.assertIn(f"learn {sha} --quiet", calls)
+        self.assertEqual(len([call for call in calls if call.startswith("learn")]), 1)
+        self.assertEqual(calls.count("check --staged"), 2)
 
     def test_never_overwrites_someone_elses_hook(self):
         existing = self.repo / ".git" / "hooks" / "pre-commit"
