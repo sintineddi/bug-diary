@@ -101,6 +101,13 @@ class FindLinesTest(unittest.TestCase):
         hits = diffs.find_lines(["+   refreshing   =   null;", "}", "not in the diff at all"], files)
         self.assertEqual(hits, [diffs.Hit("src/session.ts", 3, "refreshing = null;")])
 
+    def test_case_matters_in_code(self):
+        text = '--- a/a.js\n+++ b/a.js\n@@ -1 +1 @@\n-if (method === "POST") {\n+if (method === "post") {\n'
+        files = diffs.parse(text)
+        self.assertEqual(diffs.find_lines(['if (method === "POST") {'], files, "+ "), [])
+        self.assertEqual(diffs.find_lines(['if (method === "POST") {'], files, "-")[0].line_no, 1)
+        self.assertEqual(diffs.find_lines(['if (method ===   "post") {'], files, "+")[0].line_no, 1)
+
     def test_kinds_select_removed_lines(self):
         files = diffs.parse(SAMPLE)
         self.assertEqual(diffs.find_lines(['{"a": 1}'], files, "-")[0].path, "package-lock.json")

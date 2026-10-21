@@ -223,8 +223,8 @@ def render(files: Iterable[FileDiff], budget: int) -> str:
     return fit(files, budget)[0]
 
 
-def squash(text: str) -> str:
-    return re.sub(r"\s+", " ", text).strip().lower()
+def collapse(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def strip_marker(text: str) -> str:
@@ -235,15 +235,15 @@ def strip_marker(text: str) -> str:
 
 
 def find_lines(evidence: Iterable[str], files: Iterable[FileDiff], kinds: str = "+") -> list[Hit]:
-    candidates = [(file.path, line) for file in files for line in file.lines(kinds) if len(squash(line.text)) >= 4]
+    candidates = [(file.path, line) for file in files for line in file.lines(kinds) if len(collapse(line.text)) >= 4]
     found: list[Hit] = []
     for item in evidence:
         for piece in str(item).splitlines():
-            needle = squash(strip_marker(piece))
+            needle = collapse(strip_marker(piece))
             if len(needle) < 6:
                 continue
             for path, line in candidates:
-                haystack = squash(line.text)
+                haystack = collapse(line.text)
                 if needle in haystack or (len(haystack) >= 12 and haystack in needle):
                     number = line.new_no if line.new_no is not None else line.old_no
                     hit = Hit(path, number, line.text.strip())
