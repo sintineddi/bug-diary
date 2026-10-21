@@ -1,0 +1,141 @@
+{
+  "fixes": [
+    {
+      "repo": "psf/requests",
+      "sha": "e237a60add879d6849496a9eb11534b91b12f66a",
+      "note": "#3563 use enforce_content_length in Requests"
+    },
+    {
+      "repo": "nodejs/undici",
+      "sha": "a94ff35cab5a102093e4d925c1a634bc72f1a7ce",
+      "note": "#343 fix: requestTimeout monitors from sent"
+    },
+    {
+      "repo": "nodejs/undici",
+      "sha": "dfef1c60d1a02e8c19f8934dff367a56aaacf229",
+      "note": "#435 fix: socket back pressure memory leak"
+    },
+    {
+      "repo": "lodash/lodash",
+      "sha": "e5f840745bfa14e8f0da35f9c11f0fc2a83776d1",
+      "note": "#4431 Flatten at paths parameter"
+    },
+    {
+      "repo": "lodash/lodash",
+      "sha": "5df17774773c9b0368b89e9da8588644c740fefe",
+      "note": "#4453 add order by behaviour with array similar to get method"
+    },
+    {
+      "repo": "lodash/lodash",
+      "sha": "0cec225778d4ac26c2bac95031ecc92a94f08bbb",
+      "note": "#4515 Fix lodash.isEqual for circular references #4320"
+    }
+  ],
+  "healthy": [
+    {
+      "repo": "psf/requests",
+      "sha": "e18879932287c2bf4bcee4ddf6ccb8a69b6fc656",
+      "note": "Don't create default SSLContext if ssl module isn't present (#6724)"
+    },
+    {
+      "repo": "urllib3/urllib3",
+      "sha": "26a07dbd3267b174439f1fca0ab473dc79f473dc",
+      "note": "Make BaseHTTPResponse a base class of HTTP2Response (#3311)"
+    },
+    {
+      "repo": "nodejs/undici",
+      "sha": "01abc4fc601edba0f5ec7d2cb2388e50e006d3cd",
+      "note": "feat: check maxHeadersSize on client instantiation and not on Parser instantion (#3654)"
+    },
+    {
+      "repo": "node-fetch/node-fetch",
+      "sha": "5304f3f7f7778f1011b622bedcb0e4d3c04dba31",
+      "note": "Don't change relative location header on manual redirect (#1105)"
+    },
+    {
+      "repo": "scrapy/scrapy",
+      "sha": "812fd2368f705d033f5f39c152130b12a0fe9b1e",
+      "note": "Allow user-defined secure cookies (#6357)"
+    },
+    {
+      "repo": "curl/curl",
+      "sha": "9cc246401e608af9d2c97c72a679e8efb68e954c",
+      "note": "source: avoid use of 'very' in comments"
+    },
+    {
+      "repo": "golang/go",
+      "sha": "48d260cbd97c1c75900830d2124864d8a1af89f9",
+      "note": "crypto/internal/fips/aes: add CAST"
+    },
+    {
+      "repo": "aio-libs/aiohttp",
+      "sha": "99a373737135d924180121ca01500e479b52ba96",
+      "note": "[PR #10156/00700458 backport][3.12] Add ALPN extension to client SSL Context (#10164)"
+    },
+    {
+      "repo": "axios/axios",
+      "sha": "738fa63661a7a5d7e8bf604436bb3b91648e327b",
+      "note": "Use WHATWG URL API instead of url.parse() (#4852)"
+    },
+    {
+      "repo": "python/cpython",
+      "sha": "8da9920a80c60fb3fc326c623e0f217c84011c1d",
+      "note": "gh-126947: Typechecking for _pydatetime.timedelta.__new__ arguments (#126949)"
+    },
+    {
+      "repo": "pypa/pip",
+      "sha": "73f67440a9ac3c68bf317fa62cccec6a0c3ee98c",
+      "note": "Allow uninstallation of dist with legacy version"
+    },
+    {
+      "repo": "ansible/ansible",
+      "sha": "347a822a42c7a2f31394e112fd6645d76d939b14",
+      "note": "Documented v2_runner_on_failed method in Callback class (#83267)"
+    },
+    {
+      "repo": "lodash/lodash",
+      "sha": "c4847ebe7d14540bb28a8b932a9ce1b9ecbfee1a",
+      "note": "Improve performance of `toNumber`, `trim` and `trimEnd` on large input strings"
+    },
+    {
+      "repo": "immerjs/immer",
+      "sha": "d897c6b49fc0c726739fdd9dbfba3ed867fcd966",
+      "note": "Micro-optimize Object.getPrototypeOf uses"
+    },
+    {
+      "repo": "protobufjs/protobuf.js",
+      "sha": "ef24ae4e93cf8635ff38398b37f3597e5d478330",
+      "note": "feat: accept unknown enum values in fromObject (#1793)"
+    },
+    {
+      "repo": "ljharb/qs",
+      "sha": "ef0b96f9bcdfef626f3bdb8fad89597f0cf0bc90",
+      "note": "[New] `parse`: add `throwOnParameterLimitExceeded` option"
+    },
+    {
+      "repo": "netty/netty",
+      "sha": "24bd56db0f77d2b9ff0eca5f5a7cf4fd8025df6e",
+      "note": "NioSelectableChannelIoHandle does not need to get interestedOps as co… (#14018)"
+    },
+    {
+      "repo": "puma/puma",
+      "sha": "d62f077ed68f9f180d01ca0e7cad3fc818b53430",
+      "note": "Add on_thread_start_hook (#3195)"
+    },
+    {
+      "repo": "Pylons/waitress",
+      "sha": "31b56b689694387bf8cd49f30f71c87db940e799",
+      "note": "Trivial code cleanup"
+    },
+    {
+      "repo": "benoitc/gunicorn",
+      "sha": "dad99a1bd4b7812a4708016a7a918d3f483fba0c",
+      "note": "Update gunicorn_ext.py"
+    },
+    {
+      "repo": "hyperium/hyper",
+      "sha": "f3308c044d402dfad448bbc0497b14c69a8f22f2",
+      "note": "feat(lib): missing Timer will warn or panic"
+    }
+  ]
+}
