@@ -76,7 +76,7 @@ def diff(repo: Path, *args: str) -> str:
 
 def worktree_diff(repo: Path) -> str:
     has_head = bool(run(repo, "rev-parse", "--verify", "--quiet", "HEAD", ok=(0, 1)).strip())
-    tracked = diff(repo, "HEAD") if has_head else diff(repo, "--cached")
+    tracked = diff(repo, "HEAD" if has_head else EMPTY_TREE)
     return tracked + untracked_diff(repo)
 
 

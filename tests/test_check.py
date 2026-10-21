@@ -7,6 +7,8 @@ from bugdiary.prompts import DESCRIBE_SYSTEM
 from bugdiary.render import Style, report_lines
 
 from .fakes import FakeLLM, added_file, temporary_directory, token_repos
+from .fakes import git as fakes_git
+from .fakes import write as fakes_write
 
 
 class CheckTest(unittest.TestCase):
@@ -95,6 +97,19 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(digest, card.digest())
         for kept, computed in zip(stored, vectors[card.id]):
             self.assertAlmostEqual(kept, computed, places=6)
+
+    def test_before_the_first_commit_the_working_copy_is_checked(self):
+        repo = Path(self.tmp.name) / "fresh"
+        repo.mkdir()
+        fakes_git(repo, "init", "-q", "-b", "main")
+        fakes_write(repo, {"src/a.ts": "const staged = 1;\n"})
+        fakes_git(repo, "add", "src/a.ts")
+        fakes_write(
+            repo, {"src/a.ts": "const staged = 1;\nconst edited = 2;\n", "src/new.ts": "const untracked = 3;\n"}
+        )
+        text = git.worktree_diff(repo)
+        self.assertIn("+const edited = 2;", text)
+        self.assertIn("+const untracked = 3;", text)
 
     def test_cosine(self):
         self.assertAlmostEqual(check.cosine([1.0, 0.0], [1.0, 0.0]), 1.0)
