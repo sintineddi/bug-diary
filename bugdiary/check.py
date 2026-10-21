@@ -13,6 +13,7 @@ from .prompts import COMPARE_SCHEMA, COMPARE_SYSTEM, DESCRIBE_SCHEMA, DESCRIBE_S
 
 CHANGE_BUDGET = 30_000
 VERDICTS = ("repeats", "protected", "unrelated", "unclear")
+STRENGTH = {"repeats": 3, "protected": 2, "unclear": 1, "unrelated": 0}
 DEFAULT_TOP = 3
 DEFAULT_FLOOR = 0.0
 EMBED_BATCH = 32
@@ -38,6 +39,7 @@ class Report:
     summary: str = ""
     behaviors: list[str] = field(default_factory=list)
     findings: list[Finding] = field(default_factory=list)
+    partial: list[str] = field(default_factory=list)
     diary_size: int = 0
     seconds: float = 0.0
 
@@ -48,6 +50,16 @@ class Report:
 
 def code_files(files: list[FileDiff]) -> list[FileDiff]:
     return [file for file in files if file.role == "code" and file.hunks]
+
+
+def batches(files: list[FileDiff], budget: int = CHANGE_BUDGET) -> list[list[FileDiff]]:
+    groups: list[list[FileDiff]] = []
+    for file in files:
+        if groups and not diffs.fit(groups[-1] + [file], budget)[1]:
+            groups[-1].append(file)
+        else:
+            groups.append([file])
+    return groups
 
 
 def cosine(left: list[float], right: list[float]) -> float:
@@ -159,9 +171,20 @@ def check(
     report = Report(project, [file.path for file in code], diary_size=len(diary.cards()))
     if not code or not report.diary_size:
         return report
-    change = diffs.render(code, CHANGE_BUDGET)
-    report.summary, report.behaviors = describe(llm, change)
-    for card, score in retrieve(llm, diary, [report.summary, *report.behaviors], top, floor):
-        report.findings.append(compare(llm, card, score, change, code, project))
+    strongest: dict[int, Finding] = {}
+    summaries = []
+    for group in batches(code):
+        change, unread = diffs.fit(group, CHANGE_BUDGET)
+        report.partial += unread
+        summary, behaviors = describe(llm, change)
+        summaries.append(summary)
+        report.behaviors += behaviors
+        for card, score in retrieve(llm, diary, [summary, *behaviors], top, floor):
+            finding = compare(llm, card, score, change, group, project)
+            known = strongest.get(card.id)
+            if known is None or STRENGTH[finding.verdict] > STRENGTH[known.verdict]:
+                strongest[card.id] = finding
+    report.summary = " ".join(summary for summary in summaries if summary)
+    report.findings = sorted(strongest.values(), key=lambda finding: (-STRENGTH[finding.verdict], -finding.score))
     report.seconds = time.monotonic() - started
     return report

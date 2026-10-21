@@ -3,8 +3,10 @@ from pathlib import Path
 
 from bugdiary import check, diffs, git, learn
 from bugdiary.memory import Diary
+from bugdiary.prompts import DESCRIBE_SYSTEM
+from bugdiary.render import Style, report_lines
 
-from .fakes import FakeLLM, temporary_directory, token_repos
+from .fakes import FakeLLM, added_file, temporary_directory, token_repos
 
 
 class CheckTest(unittest.TestCase):
@@ -57,6 +59,23 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(check.check(llm, empty, self.change, "billing-worker").findings, [])
         self.assertEqual(check.check(llm, self.diary, [], "billing-worker").files, [])
         self.assertEqual(llm.prompts, [])
+
+    def test_a_large_change_is_read_in_several_passes(self):
+        llm = FakeLLM()
+        files = diffs.parse(added_file("src/a.ts", 250) + added_file("src/b.ts", 250))
+        self.assertEqual(len(check.batches(check.code_files(files))), 2)
+        report = check.check(llm, self.diary, files, "billing-worker")
+        self.assertEqual(len([system for system, _ in llm.prompts if system == DESCRIBE_SYSTEM]), 2)
+        self.assertEqual(report.partial, [])
+        self.assertEqual(len(report.findings), 1)
+
+    def test_a_file_too_large_for_one_pass_is_reported(self):
+        files = diffs.parse(added_file("src/huge.ts", 600))
+        report = check.check(FakeLLM(), self.diary, files, "billing-worker")
+        self.assertEqual(report.partial, ["src/huge.ts"])
+        text = "\n".join(report_lines(report, Style(False)))
+        self.assertIn("No known bug pattern in the part of this change that was read.", text)
+        self.assertIn("Too large to read whole: src/huge.ts", text)
 
     def test_retrieve_ranks_related_lessons_first(self):
         llm = FakeLLM()

@@ -197,14 +197,14 @@ def trim_context(lines: list[Line], context: int) -> list[Line | None]:
     return out
 
 
-def render(files: Iterable[FileDiff], budget: int) -> str:
+def fit(files: Iterable[FileDiff], budget: int) -> tuple[str, list[str]]:
     files = list(files)
     parts: list[str] = []
     for context in (None, 8, 3, 1, 0):
         parts = [render_file(file, context) for file in files]
         if sum(len(part) + 1 for part in parts) <= budget:
-            return "\n".join(parts)
-    kept, dropped, used = [], [], 0
+            return "\n".join(parts), []
+    kept, dropped, cut, used = [], [], [], 0
     for part, file in zip(parts, files):
         if used + len(part) + 1 <= budget:
             kept.append(part)
@@ -213,10 +213,14 @@ def render(files: Iterable[FileDiff], budget: int) -> str:
             dropped.append(file.path)
     if not kept and parts:
         kept.append(parts[0][:budget])
-        dropped = dropped[1:]
+        cut, dropped = dropped[:1], dropped[1:]
     if dropped:
         kept.append(f"[{len(dropped)} more changed files not shown: {', '.join(dropped[:12])}]")
-    return "\n".join(kept)
+    return "\n".join(kept), cut + dropped
+
+
+def render(files: Iterable[FileDiff], budget: int) -> str:
+    return fit(files, budget)[0]
 
 
 def squash(text: str) -> str:

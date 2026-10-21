@@ -2,6 +2,8 @@ import unittest
 
 from bugdiary import diffs
 
+from .fakes import added_file
+
 SAMPLE = """diff --git a/src/session.ts b/src/session.ts
 index 1111111..2222222 100644
 --- a/src/session.ts
@@ -81,6 +83,16 @@ class RenderTest(unittest.TestCase):
         self.assertLessEqual(len(diffs.render(files[:1], 10_000)), 10_000)
         tiny = diffs.render(files, 70)
         self.assertIn("more changed files not shown", tiny)
+
+
+class FitTest(unittest.TestCase):
+    def test_fit_names_the_files_it_could_not_show(self):
+        files = diffs.parse(added_file("a.ts", 70) + added_file("b.ts", 70))
+        self.assertEqual(diffs.fit(files, 100_000)[1], [])
+        text, unread = diffs.fit(files, 6_000)
+        self.assertEqual(unread, ["b.ts"])
+        self.assertIn("1 more changed files not shown: b.ts", text)
+        self.assertEqual(diffs.fit(files[:1], 1_000)[1], ["a.ts"])
 
 
 class FindLinesTest(unittest.TestCase):

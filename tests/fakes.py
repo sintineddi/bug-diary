@@ -169,5 +169,10 @@ def token_repos(root: Path) -> tuple[Path, Path]:
     return api, billing
 
 
+def added_file(path: str, count: int, width: int = 60) -> str:
+    body = "\n".join(f'+let value{index} = "{"x" * width}";' for index in range(count))
+    return f"--- /dev/null\n+++ b/{path}\n@@ -0,0 +1,{count} @@\n{body}\n"
+
+
 def temporary_directory() -> tempfile.TemporaryDirectory:
     return tempfile.TemporaryDirectory(prefix="bugdiary-test-")

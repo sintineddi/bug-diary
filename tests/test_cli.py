@@ -8,7 +8,7 @@ from unittest import mock
 
 from bugdiary import cli, config, hooks
 
-from .fakes import FakeLLM, git, make_repo, temporary_directory, token_repos
+from .fakes import FakeLLM, added_file, git, make_repo, temporary_directory, token_repos
 
 
 def run(*args: str) -> tuple[int, str, str]:
@@ -73,6 +73,16 @@ class CliTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("src/client.ts:4", out)
         self.assertEqual(run("forget", "1", "-C", str(self.api), "--memory", self.memory)[1], "Forgot BUG-0001.\n")
+
+    def test_strict_fails_when_the_change_is_too_large_to_read(self):
+        run("learn", "-C", str(self.api), "--memory", self.memory)
+        patch = Path(self.tmp.name) / "huge.diff"
+        patch.write_text(added_file("src/huge.ts", 600))
+        code, out, _ = run("check", "--diff", str(patch), "-C", self.tmp.name, "--memory", self.memory, "--strict")
+        self.assertEqual(code, 1)
+        self.assertIn("Too large to read whole: src/huge.ts", out)
+        code, _, _ = run("check", "--diff", str(patch), "-C", self.tmp.name, "--memory", self.memory)
+        self.assertEqual(code, 0)
 
     def test_errors_are_short(self):
         code, _, err = run("learn", "nope", "-C", str(self.api), "--memory", self.memory)

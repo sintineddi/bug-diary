@@ -126,7 +126,9 @@ def report_lines(report: Report, style: Style, show_all: bool = False) -> list[s
     for finding in report.alerts:
         lines += alert_lines(finding, report.project, style)
         lines.append("")
-    if not report.alerts:
+    if not report.alerts and report.partial:
+        lines.append(style.green("No known bug pattern in the part of this change that was read."))
+    elif not report.alerts:
         lines.append(style.green("No known bug pattern in this change."))
     for finding in report.findings:
         if finding.verdict == "protected":
@@ -140,6 +142,8 @@ def report_lines(report: Report, style: Style, show_all: bool = False) -> list[s
             lines.append(style.dim(f"{mark} {finding.card.label} ({finding.card.pattern}): {finding.reason}{note}"))
     elif others:
         lines.append(style.dim(f"{len(others)} other lessons do not apply or stay unclear (--all shows them)."))
+    if report.partial:
+        lines.append(style.yellow(f"⚠ Too large to read whole: {listing(report.partial)}. Check it in smaller pieces."))
     lines.append(
         style.dim(
             f"Compared the change with {len(report.findings)} of {report.diary_size} lessons in {report.seconds:.0f} s."
@@ -158,6 +162,7 @@ def report_json(report: Report) -> dict:
         "files": report.files,
         "summary": report.summary,
         "behaviors": report.behaviors,
+        "partial": report.partial,
         "diary_size": report.diary_size,
         "seconds": round(report.seconds, 1),
         "findings": [

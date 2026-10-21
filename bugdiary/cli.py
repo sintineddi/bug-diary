@@ -54,7 +54,11 @@ def build_parser() -> argparse.ArgumentParser:
     check_parser.add_argument("--top", type=int, default=DEFAULT_TOP, help="lessons to compare (default: 3)")
     check_parser.add_argument("--all", action="store_true", help="also show lessons that do not apply")
     check_parser.add_argument("--json", action="store_true", help="print the report as JSON")
-    check_parser.add_argument("--strict", action="store_true", help="exit with 1 when a known bug comes back")
+    check_parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="exit with 1 when a known bug comes back or the change is too large to read",
+    )
     check_parser.set_defaults(handler=run_check)
 
     search_parser = commands.add_parser("search", parents=[common], help="find lessons about a topic")
@@ -183,7 +187,7 @@ def run_check(args: argparse.Namespace) -> int:
         print(json.dumps(report_json(report), indent=2, ensure_ascii=False))
     else:
         print("\n".join(report_lines(report, Style.for_stream(sys.stdout), args.all)))
-    return 1 if args.strict and report.alerts else 0
+    return 1 if args.strict and (report.alerts or report.partial) else 0
 
 
 def run_search(args: argparse.Namespace) -> int:
