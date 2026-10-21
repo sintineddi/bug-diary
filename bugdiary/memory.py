@@ -7,7 +7,7 @@ from pathlib import Path
 
 from .card import Card
 
-SCHEMA = """
+CARDS_TABLE = """
 CREATE TABLE IF NOT EXISTS cards (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project TEXT NOT NULL,
@@ -18,14 +18,16 @@ CREATE TABLE IF NOT EXISTS cards (
     model TEXT NOT NULL,
     body TEXT NOT NULL,
     UNIQUE (project, revision)
-);
+)
+"""
+VECTORS_TABLE = """
 CREATE TABLE IF NOT EXISTS vectors (
     card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
     model TEXT NOT NULL,
     digest TEXT NOT NULL,
     vector BLOB NOT NULL,
     PRIMARY KEY (card_id, model)
-);
+)
 """
 
 
@@ -37,11 +39,14 @@ class Diary:
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA foreign_keys = ON")
         self.db.execute("PRAGMA journal_mode = WAL")
-        self.db.executescript(SCHEMA)
-        columns = {row["name"] for row in self.db.execute("PRAGMA table_info(vectors)")}
-        if "digest" not in columns:
-            self.db.execute("DROP TABLE vectors")
-            self.db.executescript(SCHEMA)
+        with self.db:
+            self.db.execute("BEGIN IMMEDIATE")
+            self.db.execute(CARDS_TABLE)
+            self.db.execute(VECTORS_TABLE)
+            columns = {row["name"] for row in self.db.execute("PRAGMA table_info(vectors)")}
+            if "digest" not in columns:
+                self.db.execute("DROP TABLE vectors")
+                self.db.execute(VECTORS_TABLE)
 
     def close(self) -> None:
         self.db.close()

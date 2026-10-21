@@ -1,4 +1,5 @@
 import sqlite3
+import threading
 import unittest
 from pathlib import Path
 
@@ -81,6 +82,36 @@ class DiaryTest(unittest.TestCase):
         self.assertFalse(self.diary.forget(card_id))
         self.assertIsNone(self.diary.get(card_id))
         self.assertEqual(self.diary.vectors("embed"), {})
+
+    def test_concurrent_opens_upgrade_an_old_diary_once(self):
+        for attempt in range(10):
+            path = Path(self.tmp.name) / f"race-{attempt}" / "diary.db"
+            path.parent.mkdir()
+            old = sqlite3.connect(str(path))
+            old.execute("PRAGMA journal_mode = WAL")
+            old.execute("CREATE TABLE vectors (card_id INTEGER, model TEXT, vector BLOB, PRIMARY KEY (card_id, model))")
+            old.commit()
+            old.close()
+            errors = []
+            start = threading.Barrier(12)
+
+            def open_diary():
+                try:
+                    start.wait()
+                    Diary(path).close()
+                except sqlite3.Error as error:
+                    errors.append(error)
+
+            threads = [threading.Thread(target=open_diary) for _ in range(12)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+            self.assertEqual(errors, [])
+            upgraded = sqlite3.connect(str(path))
+            columns = {row[1] for row in upgraded.execute("PRAGMA table_info(vectors)")}
+            upgraded.close()
+            self.assertIn("digest", columns)
 
     def test_labels(self):
         self.assertEqual(label(7), "BUG-0007")
