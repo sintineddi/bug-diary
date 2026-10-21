@@ -201,7 +201,7 @@ def items(cases: dict, evaluated: list[dict]) -> list[dict]:
     return out
 
 
-def run_detect(llm: Ollama, variant: str, top: int) -> None:
+def run_detect(llm: Ollama, variant: str, top: int, kinds: tuple[str, ...]) -> None:
     cases = load_cases()
     _, evaluated = split(cases)
     folder = results_dir(llm.model, variant)
@@ -209,7 +209,7 @@ def run_detect(llm: Ollama, variant: str, top: int) -> None:
     log = folder / f"detect-top{top}.jsonl"
     finished = done(log, "item")
     for item in items(cases, evaluated):
-        if item["item"] in finished:
+        if item["item"] in finished or item["kind"] not in kinds:
             continue
         files = diffs.parse(item["diff"])
         report = check.check(llm, diary, files, project_of(item["repo"]), top=top)
@@ -251,6 +251,7 @@ def main() -> None:
     parser.add_argument("--variant", choices=sorted(VARIANTS), default="full")
     parser.add_argument("--model", default="gemma4:26b")
     parser.add_argument("--top", type=int, default=check.DEFAULT_TOP)
+    parser.add_argument("--kinds", default="vulnerable,fixed,healthy", help="snapshots to check, comma separated")
     args = parser.parse_args()
     llm = Ollama(model=args.model)
     if args.step == "fetch":
@@ -261,7 +262,7 @@ def main() -> None:
     elif args.step == "learn":
         run_learn(llm, args.variant)
     elif args.step == "detect":
-        run_detect(llm, args.variant, args.top)
+        run_detect(llm, args.variant, args.top, tuple(args.kinds.split(",")))
     else:
         run_blind(llm)
 
