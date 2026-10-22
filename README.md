@@ -106,7 +106,7 @@ Full tables in [bench/results/gemma4-26b/RESULTS.md](bench/results/gemma4-26b/RE
 
 - The diary found a lesson of the right family for 90 of the 92 later bugs. Of the 33 warnings on vulnerable code that cited the right family, 30 relied only on lessons from other repositories, and 14 only on lessons learned from code in another language.
 - Without the diary, the model finds a problem in almost every change, fixed or not.
-- The hard case is a comeback: when the code already carries the guard of an earlier, incomplete fix, the model calls it protected. A prompt that told the model "a guard can be incomplete" (`detect-top3-v2.jsonl`, not kept in the code) warned on both versions of 40 bugs.
+- The main failure is trust: of the 59 bugs without a warning, the model called 55 already guarded. For 23 of them, the repository had fixed a bug of the same family before 2021, so the code usually carried the guard of that earlier, incomplete fix. A prompt that told the model "a guard can be incomplete" (`detect-top3-v2.jsonl`, not kept in the code) warned on both versions of 40 bugs instead.
 - From the diff alone, the model left the symptom unknown for 37 of the 66 fixes and inferred it for 29; with the commit message, the pull request and the advisory, 62 symptoms were quoted from a source.
 - A diary learned from the diffs alone still found the right family for 89 of the 92 later bugs, but warned on both versions of 17 of them; learned with the tests, 7.
 
