@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import statistics
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from .run import RESULTS, fix_date, load_cases, project_of
@@ -141,6 +141,22 @@ def median_seconds(rows: list[dict]) -> str:
     return f"{statistics.median(row['seconds'] for row in rows):.0f} s" if rows else "–"
 
 
+def pair_row(name: str, judged: list[dict], vulnerable_key: str, fixed_key: str) -> list[str]:
+    by_case: dict[str, dict] = {}
+    for row in judged:
+        by_case.setdefault(row["item"].split(":")[0], {})[row["kind"]] = row
+    pairs = [kinds for kinds in by_case.values() if "vulnerable" in kinds and "fixed" in kinds]
+    if not pairs:
+        return []
+    outcome = Counter((kinds["vulnerable"][vulnerable_key], kinds["fixed"][fixed_key]) for kinds in pairs)
+    healthy = [row for row in judged if row["kind"] == "healthy"]
+    ordinary = f"{share(healthy, 'alerted')}" if healthy else "–"
+    return [
+        f"| {name} | {len(pairs)} | {outcome[(True, False)]} | {outcome[(True, True)]} | {outcome[(False, False)]} "
+        f"| {outcome[(False, True)]} | {ordinary} |"
+    ]
+
+
 def detection_table(name: str, judged: list[dict], failed: int = 0) -> list[str]:
     vulnerable = [row for row in judged if row["kind"] == "vulnerable"]
     fixed = [row for row in judged if row["kind"] == "fixed"]
@@ -205,6 +221,7 @@ def main() -> None:
     ]
     blind = [judge_blind(row) for row in read(model_dir / "blind" / "blind.jsonl")]
     compared: dict[str, list[tuple[dict, dict]]] = {}
+    pairs_rows: list[str] = []
     for variant_dir in sorted(path for path in model_dir.iterdir() if path.is_dir()):
         families = family_of_cards(read(variant_dir / "learn.jsonl"))
         logs = [variant_dir / f"detect-top{args.top}.jsonl", *sorted(variant_dir.glob(f"detect-top{args.top}-*.jsonl"))]
@@ -214,11 +231,24 @@ def main() -> None:
             judged = [judge_detection(row, families) for row in rows]
             if judged or failures(log):
                 out += detection_table(f"{variant_dir.name}, {version}", judged, failures(log))
+                pairs_rows += pair_row(f"{variant_dir.name}, {version}", judged, "right_precedent", "alerted")
             if variant_dir.name == "full":
                 compared[version] = list(zip(rows, judged))
     blind_failures = failures(model_dir / "blind" / "blind.jsonl")
     if blind or blind_failures:
         out += blind_table(blind, blind_failures)
+    out.append("")
+    out += [
+        "## Vulnerable and fixed versions of the same bug",
+        "",
+        "| diary built from | pairs | warns on the vulnerable version only | on both | on neither"
+        " | on the fixed version only | ordinary commits with a warning |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    out += pairs_rows
+    if blind:
+        out += pair_row("no diary, any problem", blind, "alerted", "alerted")
+        out += pair_row("no diary, on the lines the fix changed", blind, "on_the_spot", "on_the_spot")
     out.append("")
     for version, pairs in compared.items():
         out += [f"## By family (full context, {version})", ""]

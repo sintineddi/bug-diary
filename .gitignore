@@ -6,4 +6,4 @@ build/
 CHALLENGE.md
 NOTE-CONCEPTION.md
 bench/cache/
-bench/results/
+bench/results/**/diary.db*

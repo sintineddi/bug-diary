@@ -1,0 +1,66 @@
+{"case": "F1-01", "message": "Repopulate ~/.netrc auth.\n\nBetter layout for checking.\n\nRespect trust_env on redirect.", "matches": "partly", "why": "The message claims a better layout for checking, but the code specifically implements security logic for stripping headers and repopulating netrc auth."}
+{"case": "F1-02", "message": "Merge pull request #1951 from Lukasa/proxyauth\n\nRe-evaluate proxy authorization.", "matches": "partly", "why": "The message only mentions re-evaluating proxy authorization, but the change also includes logic to strip the Authorization header when redirected to a different host."}
+{"case": "F1-03", "message": "Merge c215b22bdbcb988dcc40117ff45432b0db25175b into 988d5a81ff3081c1c6a3ab267e81a9fff94bd9e4", "matches": "no", "why": "The message is a merge commit and does not describe the changes."}
+{"case": "F2-01", "message": "extract: normalize symbolic links outside root", "matches": "yes", "why": ""}
+{"case": "X-01", "message": "Merge pull request #3563 from nateprewitt/enforce_content_length\n\nuse enforce_content_length in Requests", "matches": "yes", "why": ""}
+{"case": "F2-02", "message": "Fix #315 and resolve relative path vulnerability", "matches": "yes", "why": ""}
+{"case": "F3-01", "message": "[Fix] ensure that `allowPrototypes: false` does not ever shadow Object.prototype properties.", "matches": "yes", "why": ""}
+{"case": "F1-04", "message": "http: prevent custom Authorization headers in redirects\n\n... unless CURLOPT_UNRESTRICTED_AUTH is set to allow them. This matches how\ncurl already handles Authorization headers created internally.\n\nNot", "matches": "yes", "why": ""}
+{"case": "F3-02", "message": "Avoid merging properties on to __proto__ objects.", "matches": "yes", "why": ""}
+{"case": "F3-03", "message": "skip assignment to __proto__", "matches": "yes", "why": ""}
+{"case": "F3-04", "message": "exclude __proto__", "matches": "yes", "why": ""}
+{"case": "F2-03", "message": "Merge pull request #61298 from brendandburns/kubectl\n\nAutomatic merge from submit-queue. If you want to cherry-pick this change to another branch, please follow the instructions <a href=\"https://githu", "matches": "yes", "why": ""}
+{"case": "F1-05", "message": "Remove Authorization header when redirecting cross-host (#1346)", "matches": "yes", "why": ""}
+{"case": "F2-04", "message": "Merge pull request #59 from aviadatsnyk/fix/zip-slip\n\nfix: prevent extracting archived files outside of target path", "matches": "yes", "why": ""}
+{"case": "F2-05", "message": "Merge pull request #212 from aviadatsnyk/master\n\nfix: prevent extracting archived files outside of target path.  Credit to Snyk Security Research Team for disclosure and fixing the issue.", "matches": "yes", "why": ""}
+{"case": "F2-06", "message": "Fixed potential security vulnerability reported by Snyk Security Research Team\n\nThis is an arbitrary file write vulnerability, that can be achieved using a specially crafted zip archive, that holds pa", "matches": "yes", "why": ""}
+{"case": "F3-05", "message": "Prevent Object prototype pollution.\n\nSee https://hackerone.com/reports/311333.\n\nRemove yarn.lock and disabled SSL checks to pass CI for older versions\nof node.", "matches": "partly", "why": "The message claims to remove yarn.lock and disabled SSL checks, but the code only modifies .travis.yml to disable SSL and change the registry."}
+{"case": "F2-07", "message": "force hardlink targets to be in the tar", "matches": "yes", "why": ""}
+{"case": "F2-08", "message": "unpack: only reuse file fs entries if nlink = 1\n\nThis matches behavior in bsdtar to prevent overwriting a hardlink with\ncontents from a File archive entry.", "matches": "yes", "why": ""}
+{"case": "F2-09", "message": "fix: prevent extracting archived files outside of target path\n\nThis PR is meant to fix an arbitrary file write vulnerability, that can be\nachieved using a specially crafted zip archive, that holds pat", "matches": "yes", "why": ""}
+{"case": "F2-10", "message": "Merge pull request #87 from odinn1984/fix/fail_on_outside_target_files\n\nfix: fail when trying to extract outside of dest dir", "matches": "yes", "why": ""}
+{"case": "F2-11", "message": "Merge pull request #121 from shana/bugs/relative-paths\n\nSanitize zip entry paths before extracting", "matches": "yes", "why": ""}
+{"case": "F2-12", "message": "Merge pull request #156 from alexcrichton/protect-hard-links\n\nDon't allow hardlinks to overwrite existing files", "matches": "yes", "why": ""}
+{"case": "F2-13", "message": "Restrict path traversal on FastZip extraction (#235)\n\nFixes #232\r\n\r\n- Prevent traversal outside of extraction directory\r\n- Add new explicit exception for invalid names\r\n- Add tests for extraction path", "matches": "yes", "why": ""}
+{"case": "F3-06", "message": "Ensure Object.prototype is not augmented by _.merge.", "matches": "yes", "why": ""}
+{"case": "F2-14", "message": "Merge pull request #376 from jdleesmiller/fix-cve-2018-1000544\n\nFix CVE-2018-1000544 and disable symlinks to avoid other security issues", "matches": "yes", "why": ""}
+{"case": "F1-06", "message": "Merge pull request #4718 from bmerry/fix-4716\n\nStrip Authorization header whenever root URL changes", "matches": "yes", "why": ""}
+{"case": "F3-07", "message": "Fix prototype pollution", "matches": "yes", "why": ""}
+{"case": "F1-07", "message": "Remove Authorization headers regardless of case on cross-origin redirects (#1511)", "matches": "yes", "why": ""}
+{"case": "F2-15", "message": "Merge pull request #75037 from soltysh/cp_bug\n\nFix panic in kubectl cp command", "matches": "partly", "why": "The message claims to fix a panic, but the code also implements a security fix for directory traversal via symlinks and verifies tar prefix integrity."}
+{"case": "F3-08", "message": "Core: Prevent Object.prototype pollution for $.extend( true, ... )\n\nCloses gh-4333", "matches": "yes", "why": ""}
+{"case": "F2-16", "message": "Merge pull request #76788 from soltysh/tar-fixes\n\nClean links handling in cp's tar code", "matches": "yes", "why": ""}
+{"case": "F2-17", "message": "Clobber a Link if it's in the way of a File\n\nFixes https://github.com/npm/node-tar/issues/212", "matches": "yes", "why": ""}
+{"case": "F3-09", "message": "disallow constructor and prototype keys", "matches": "yes", "why": ""}
+{"case": "F3-10", "message": "disallow proto keys", "matches": "yes", "why": ""}
+{"case": "F3-11", "message": "fix: prototype pollution in _.defaultsDeep (#4336)", "matches": "partly", "why": "the message only mentions __proto__ via the term prototype pollution, but the code also specifically blocks the constructor key"}
+{"case": "F2-18", "message": "Merge pull request #80436 from M00nF1sh/master\n\nRefactors to kubectl CP command", "matches": "no", "why": "The message describes a refactor to kubectl CP command, but the change fixes a directory traversal vulnerability (CVE-2019-11249)."}
+{"case": "X-04", "message": "Flatten at paths parameter (#4431)\n\n* Enable at tests\r\n\r\n* Flatten at paths parameter", "matches": "partly", "why": "The message claims to flatten the paths parameter, but it also claims to enable at tests, which is not a change to the code logic itself."}
+{"case": "X-05", "message": "add order by behaviour with array similar to get method (#4453)\n\n* add order by behaviour with array similar to get method\r\n\r\n* remove typo for fixing orderby iteratee assignment\r\n\r\n* lint fixes\r\n\r\n* ", "matches": "partly", "why": "The message claims to add order by behaviour with array similar to get method and remove a typo, but the code specifically implements path-based access via baseGet for array-based iteratees."}
+{"case": "F2-19", "message": "Merge pull request #82143 from soltysh/cp_no_links\n\nRemove symlink support from kubectl cp", "matches": "yes", "why": ""}
+{"case": "F4-01", "message": "Correctly handle whitespaces in HTTP header names as defined by RFC7230#section-3.2.4 (#9585)\n\nMotivation:\r\n\r\nWhen parsing HTTP headers special care needs to be taken when a whitespace is detected in ", "matches": "yes", "why": ""}
+{"case": "X-06", "message": "Fix lodash.isEqual for circular references (#4320) (#4515)", "matches": "yes", "why": ""}
+{"case": "F3-12", "message": "Prevent setting/getting some problematic path components", "matches": "yes", "why": ""}
+{"case": "F4-02", "message": "Detect missing colon when parsing http headers with no value (#9871)\n\nMotivation:\r\n\r\nTechnical speaking its valid to have http headers with no values so we should support it. That said we need to dete", "matches": "yes", "why": ""}
+{"case": "F4-03", "message": "Verify we do not receive multiple content-length headers or a content-length and transfer-encoding: chunked header when using HTTP/1.1 (#9865)\n\nMotivation:\r\n\r\nRFC7230 states that we should not accept ", "matches": "yes", "why": ""}
+{"case": "F4-04", "message": "Remove support for non CRLF line endings\n\nhttps://tools.ietf.org/html/rfc7230#section-3.5 says that servers MAY\nimplement their parsers to use only the LF as a delimeter between lines,\nhowever if the ", "matches": "yes", "why": ""}
+{"case": "F4-05", "message": "Upon receiving invalid Content-Length bail\n\nInstead of attempting to continue processing the request, we instead\nraise a ParsingError and return a HTTP Bad Request to the client.\n\nThis also catches th", "matches": "yes", "why": ""}
+{"case": "F4-06", "message": "Improve validation of Transfer-Encoding\n\nWaitress only supports a single Transfer-Encoding and that is chunked.\nWe will read the whole request into a temporary buffer and then remove\nthe header and se", "matches": "yes", "why": ""}
+{"case": "F4-07", "message": "Remove accidental stripping of non-printable characters\n\nContinuation/follow-up for:\nhttps://github.com/Pylons/waitress/security/advisories/GHSA-m5ff-3wj3-8ph4\nwhich showcased the initial problem with", "matches": "yes", "why": ""}
+{"case": "F3-13", "message": "Prevent prototype poisoning in clone(). Closes #352", "matches": "yes", "why": ""}
+{"case": "F3-14", "message": "Merge pull request from GHSA-jxfh-8wgv-vfr2", "matches": "no message", "why": ""}
+{"case": "F3-15", "message": "don't assign onto __proto__\n\ncleanup\n\n1.2.2\n\nmore failing proto pollution tests\n\neven more aggressive checks for protocol pollution", "matches": "yes", "why": ""}
+{"case": "F3-16", "message": "fix: __proto__ will now be replaced with ___proto___ in parse (#258)", "matches": "yes", "why": ""}
+{"case": "F2-20", "message": "ansible-galaxy - Fix tar path traversal issue during install - CVE-2020-10691 (#68596)", "matches": "yes", "why": ""}
+{"case": "F2-21", "message": "Prevent directory traversal (#73)", "matches": "yes", "why": ""}
+{"case": "F1-08", "message": "Merge pull request #27 from actions/redirect-auth-issue\n\nRedirects should not pass authorization to different domain", "matches": "yes", "why": ""}
+{"case": "F4-08", "message": "Better handle client input", "matches": "partly", "why": "The message says 'Better handle client input' but the notes specify the change fixes HTTP Smuggling via Transfer-Encoding Header."}
+{"case": "F3-17", "message": "fix(zipObjectDeep): prototype pollution (#4759)", "matches": "yes", "why": ""}
+{"case": "F3-18", "message": "Fix prototype pollution on unflatten\n\nFixes #105.", "matches": "yes", "why": ""}
+{"case": "X-02", "message": "fix: requestTimeout monitors from sent (#343)", "matches": "yes", "why": ""}
+{"case": "F3-19", "message": "Merge pull request #34 from AdamGold/master\n\nfix: 🐛 fix prototype pollution", "matches": "yes", "why": ""}
+{"case": "X-03", "message": "fix: socket back pressure memory leak (#435)", "matches": "yes", "why": ""}
+{"case": "F2-22", "message": "Prevent arbitrary file overwrite via path traversal (Zip Slip attack)", "matches": "yes", "why": ""}
+{"case": "F3-20", "message": "Fix prototype pollution in set()", "matches": "yes", "why": ""}
+{"case": "F3-21", "message": "fix: address prototype pollution issue (#108)", "matches": "yes", "why": ""}
+{"case": "F3-22", "message": "do not allow invalid hazardous string as section name", "matches": "yes", "why": ""}
