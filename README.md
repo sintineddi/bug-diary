@@ -81,7 +81,7 @@ Options: `--model` (any Ollama model, `gemma4:26b` by default), `--embed-model` 
 
 - `bench/families.json` (summary in [bench/FAMILIES.md](bench/FAMILIES.md)) lists 153 security advisories, each checked against its fix commit, in four families of bugs that keep coming back: credentials kept across a redirect (47 fixes in 22 repositories), archive extraction escaping its folder (48), prototype pollution (42), HTTP request smuggling (16).
 - The diary learns only the fixes published before 2021-01-01 (60, plus 6 ordinary bug fixes from `bench/extra.json`).
-- For each of the 92 later fixes, Bug Diary checks the vulnerable code and the fixed code (each shown as new code, 30 lines of context around the fix), plus 21 ordinary commits from the same repositories.
+- For 92 of the 93 later fixes, Bug Diary checks the vulnerable code and the fixed code (each shown as new code, 30 lines of context around the fix), plus 21 ordinary commits from the same repositories. The 93rd (F2-29) is skipped: its test commit is the parent of the fix and has the same timestamp, so the harness takes it for a follow-up and gets an empty diff.
 - The same model without the diary, asked to review each change, is the baseline (`bench/blind.py`).
 
 ```sh
@@ -106,7 +106,7 @@ Full tables in [bench/results/gemma4-26b/RESULTS.md](bench/results/gemma4-26b/RE
 
 - The diary found a lesson of the right family for 90 of the 92 later bugs. Of the 33 warnings on vulnerable code that cited the right family, 30 relied only on lessons from other repositories, and 14 only on lessons learned from code in another language.
 - Without the diary, the model finds a problem in almost every change, fixed or not.
-- The main failure is trust: of the 59 bugs without a warning, the model called 55 already guarded. For 23 of them, the repository had fixed a bug of the same family before 2021, so the code usually carried the guard of that earlier, incomplete fix. A prompt that told the model "a guard can be incomplete" (`detect-top3-v2.jsonl`, not kept in the code) warned on both versions of 40 bugs instead.
+- The main failure is trust: of the 59 vulnerable versions with no warning that cited the right family, the model called 55 already guarded. For 23 of them, the repository had fixed a bug of the same family before 2021, so the code usually carried the guard of that earlier, incomplete fix. A prompt that told the model "a guard can be incomplete" (`detect-top3-v2.jsonl`, not kept in the code) warned on both versions of 40 bugs instead.
 - From the diff alone, the model left the symptom unknown for 37 of the 66 fixes and inferred it for 29; with the commit message, the pull request and the advisory, 62 symptoms were quoted from a source.
 - A diary learned from the diffs alone still found the right family for 89 of the 92 later bugs, but warned on both versions of 17 of them; learned with the tests, 7.
 
